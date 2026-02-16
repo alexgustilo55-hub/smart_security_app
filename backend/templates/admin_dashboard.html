@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+  
+</head>
+<body>
+    <center>
+<header>
+    <h1>Admin Dashboard</h1>
+    <p>Welcome!!, {{ session['username'] }}!</p>
+    <a href="{{ url_for('logout') }}">Logout</a>
+  </header>
+
+    </center>y
+
+<!--______________________Flash messages_______________________-->
+
+<div id="flash-message">y
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+</div>
+</body>
+</html>

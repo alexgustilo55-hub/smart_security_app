@@ -1,0 +1,154 @@
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  transition: all 0.3s ease;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  background: linear-gradient(135deg, #e0f2fe, #f4f6fb); 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.page-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.logo {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.logo img {
+  width: 200px; 
+  height: auto;
+}
+
+.login-container {
+  width: 420px;
+  max-width: 90%;
+  background: #ffffff;
+  padding: 40px 30px;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.login-container:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+}
+
+
+.login-container h2 {
+  margin-bottom: 10px;
+  font-size: 28px;
+  color: #1e3a8a;
+  font-weight: 700;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: #4b5563;
+  margin-bottom: 30px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-size: 15px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 5px rgba(37,99,235,0.4);
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #3b82f6, #1e40af);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(30,64,175,0.3);
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(30,64,175,0.5);
+}
+
+.forgot {
+  display: block;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.forgot:hover {
+  text-decoration: underline;
+  color: #1e40af;
+}
+
+
+#flash-message {
+    position: fixed;
+    top: 0px;   
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: 100%;
+    text-align: center;
+    pointer-events: none; 
+}
+
+.flash {
+    display: inline-block;
+    padding: 10px 16px;
+    margin: 5px auto;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    opacity: 0;
+    animation: fadeInOut 5s ease-in-out forwards;
+    pointer-events: auto;
+}
+
+.flash.success {
+    background-color: #28a745;
+}
+
+.flash.error,
+.flash.danger {
+    background-color: #dc3545;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-10px); }
+    15% { opacity: 1; transform: translateY(0); }
+    70% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+
