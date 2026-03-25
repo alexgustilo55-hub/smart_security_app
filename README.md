@@ -89,14 +89,15 @@ SecuTrack solves these problems by integrating hardware and software into one sm
 
 
 
-## 📷 System Architecture (Optional)
+## 📷 System Architecture 
 
-> (You can add diagrams or screenshots here)
+> ![368244be-bcbd-4dbe-8a15-a8d64e92e8d2](https://github.com/user-attachments/assets/3c1ab918-2c34-4169-b091-bc223c6aac31)
+> ![3342c806-669b-4dd2-94eb-c12b935bd18b](https://github.com/user-attachments/assets/19c55e36-86e8-48be-a0af-26ed3b0da129)
+> ![66b34518-fca4-4e20-8497-561e5e9909d0](https://github.com/user-attachments/assets/33c0d3b6-e37d-49ac-942e-7ed50591cc9a)
 
 
 
-📌 Installation (Optional)
 
-```bash
-git clone https://github.com/your-username/Smart_Security_App.git
-cd Smart_Security_App
+
+
+
