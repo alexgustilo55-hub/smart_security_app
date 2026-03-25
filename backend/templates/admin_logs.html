@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Access Logs - SecuTrack</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+/* DELETE ALL BUTTON STYLES */
+.btn-delete-all {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-delete-all:hover {
+  background: #a71d2a;
+}
+</style>
+</head>
+
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+<div class="logo">
+<img src="{{ url_for('static', filename='logo/SecuTrack.png') }}">
+</div>
+
+<ul class="menu">
+<li><a href="{{ url_for('admin_sensor_monitor') }}"><i class="bi bi-speedometer2"></i> Sensor Monitor</a></li>
+<li><a href="{{ url_for('admin_security_alerts') }}"><i class="bi bi-shield-exclamation"></i> Security Alerts</a></li>
+<li class="{% if request.endpoint == 'admin_logs' %}active{% endif %}">
+<a href="{{ url_for('admin_logs') }}"><i class="bi bi-journal-check"></i> Access Logs</a>
+</li>
+<li><a href="{{ url_for('admin_control_panel') }}"><i class="bi bi-gear"></i> Control Panel</a></li>
+<li><a href="{{ url_for('admin_analytics') }}"><i class="bi bi-bar-chart"></i> Analytics</a></li>
+</ul>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- TOPBAR -->
+<div class="topbar">
+<div></div>
+
+<div class="profile" id="profileMenu" onclick="toggleDropdown(event)">
+<div class="avatar">
+{% if user.profile_pic %}
+<img src="{{ url_for('static', filename='profile_pic/' + user.profile_pic) }}">
+{% else %}
+{{ user.username[0] | upper }}
+{% endif %}
+</div>
+
+<div class="dropdown" id="profileDropdown">
+<div class="dropdown-header">
+<strong>{{ user.full_name }}</strong>
+<small>{{ user.role }}</small>
+</div>
+
+<a href="{{ url_for('admin_profile') }}"><i class="bi bi-person"></i> Profile</a>
+<a href="#"><i class="bi bi-key"></i> Change Password</a>
+<a href="javascript:void(0)"><i class="bi bi-moon"></i> Dark Mode</a>
+
+<hr>
+
+<a href="{{ url_for('logout') }}" class="logout">
+<i class="bi bi-box-arrow-right"></i> Logout
+</a>
+</div>
+</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<h1 class="page-header"><i class="bi bi-journal-check"></i> Access Logs</h1>
+
+<!-- SUMMARY -->
+<div class="access-summary">
+<div class="access-box granted">
+<i class="bi bi-check-circle-fill"></i> Access Granted
+<span id="rfidGrantedCount">{{ rfid_granted_count }}</span>
+</div>
+
+<div class="access-box denied">
+<i class="bi bi-x-circle-fill"></i> Access Denied
+<span id="rfidDeniedCount">{{ rfid_denied_count }}</span>
+</div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="logs-toolbar">
+
+<div class="search-box">
+<i class="bi bi-search"></i>
+<input type="text" id="logSearch" placeholder="Search...">
+</div>
+
+<select id="statusFilter">
+<option value="all">All Status</option>
+<option value="granted">Granted</option>
+<option value="denied">Denied</option>
+</select>
+
+<button id="exportLogs" class="btn-export">
+<i class="bi bi-download"></i> Export CSV
+</button>
+
+<button id="deleteAllLogs" class="btn-delete-all">
+<i class="bi bi-trash3"></i> Delete All
+</button>
+
+</div>
+
+<!-- TABLE -->
+<div class="card">
+<div class="card-header"><strong>Access Logs</strong></div>
+<div class="card-body table-responsive">
+<table id="rfidLogs">
+<thead>
+<tr>
+<th>Name</th>
+<th>Role</th>
+<th>Status</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody>
+{% for log in rfid_logs %}
+<tr id="row-{{ log.id }}">
+<td>{{ log.name }}</td>
+<td>{{ log.role }}</td>
+<td>
+{% if log.status == 'authorized' or log.status == 'granted' %}
+<span class="badge bg-success">{{ log.status }}</span>
+{% else %}
+<span class="badge bg-danger">{{ log.status }}</span>
+{% endif %}
+</td>
+<td>{{ log.time }}</td>
+</tr>
+{% else %}
+<tr id="noRFIDRow"><td colspan="4" class="text-center">No access logs found</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+
+</div>
+</div>
+
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<script>
+// ---------- SOCKET.IO REALTIME ADD ----------
+const socket = io();
+socket.on("update_overview", (data) => {
+  if (data.type === "rfid") addRFIDRow(data);
+});
+
+// ---------- FORMAT TIME FUNCTION ----------
+function getCurrentDateTime() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth()+1).padStart(2,'0');
+  const day = String(now.getDate()).padStart(2,'0');
+
+  const hours = String(now.getHours()).padStart(2,'0');
+  const minutes = String(now.getMinutes()).padStart(2,'0');
+  const seconds = String(now.getSeconds()).padStart(2,'0');
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// ---------- ADD RFID ROW FUNCTION ----------
+function addRFIDRow(data) {
+  const table = document.querySelector("#rfidLogs tbody");
+  const emptyRow = document.querySelector("#noRFIDRow");
+  if (emptyRow) emptyRow.remove();
+
+  const row = document.createElement("tr");
+
+  // 🔥 FIX: fallback id para di mag conflict
+  row.id = `row-${data.id || Date.now()}`;
+
+  const isGranted = (data.status === "granted" || data.status === "authorized");
+  const statusBadge = isGranted
+    ? '<span class="badge bg-success">'+data.status+'</span>'
+    : '<span class="badge bg-danger">'+data.status+'</span>';
+
+  // 🔥 FIX: fallback time
+  let displayTime = data.time;
+  if (!displayTime || displayTime === "undefined") {
+    displayTime = getCurrentDateTime();
+  }
+
+  row.innerHTML = `
+    <td>${data.name}</td>
+    <td>${data.role}</td>
+    <td>${statusBadge}</td>
+    <td>${displayTime}</td>
+  `;
+
+  table.prepend(row);
+
+  // ---- UPDATE COUNTERS ----
+  const grantedCountElem = document.getElementById("rfidGrantedCount");
+  const deniedCountElem = document.getElementById("rfidDeniedCount");
+
+  if(isGranted) {
+    grantedCountElem.textContent = parseInt(grantedCountElem.textContent) + 1;
+  } else {
+    deniedCountElem.textContent = parseInt(deniedCountElem.textContent) + 1;
+  }
+}
+
+// ---------- SEARCH + FILTER ----------
+function applySearchFilter() {
+  const search = document.getElementById("logSearch").value.toLowerCase();
+  const filter = document.getElementById("statusFilter").value;
+
+  document.querySelectorAll("#rfidLogs tbody tr").forEach(row => {
+    if(row.id === "noRFIDRow") return;
+
+    const text = row.innerText.toLowerCase();
+    const status = row.children[2].innerText.toLowerCase();
+    const matchSearch = text.includes(search);
+    const matchFilter =
+      filter === "all" ||
+      (filter === "granted" && status.includes("granted")) ||
+      (filter === "denied" && status.includes("denied"));
+
+    row.style.display = (matchSearch && matchFilter) ? "" : "none";
+  });
+}
+
+document.getElementById("logSearch").addEventListener("keyup", applySearchFilter);
+document.getElementById("statusFilter").addEventListener("change", applySearchFilter);
+
+// ---------- EXPORT CSV ----------
+document.getElementById("exportLogs").onclick = function() {
+  let csv = [];
+  document.querySelectorAll("table tr").forEach(row => {
+    let cols = row.querySelectorAll("td, th");
+    let data = [];
+    cols.forEach(col => data.push(col.innerText));
+    csv.push(data.join(","));
+  });
+  let blob = new Blob([csv.join("\n")]);
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "logs.csv";
+  a.click();
+};
+
+// ---------- DELETE ALL LOGS ----------
+document.getElementById("deleteAllLogs").onclick = function() {
+  if(!confirm("Delete ALL logs?")) return;
+
+  fetch("/admin/delete_all_logs", { method: "POST" })
+    .then(res => res.json())
+    .then(data => {
+      if(data.success) {
+        document.querySelector("#rfidLogs tbody").innerHTML = `
+          <tr id="noRFIDRow">
+            <td colspan="4" class="text-center">No access logs found</td>
+          </tr>`;
+        document.getElementById("rfidGrantedCount").textContent = 0;
+        document.getElementById("rfidDeniedCount").textContent = 0;
+      } else {
+        alert(data.message || "Delete failed");
+      }
+    });
+};
+</script>
+
+</body>
+</html>

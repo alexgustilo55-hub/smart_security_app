@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Analytics - SecuTrack</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<!-- ================= SIDEBAR ================= -->
+<aside class="sidebar">
+<div class="logo">
+    <img src="{{ url_for('static', filename='logo/SecuTrack.png') }}">
+</div>
+
+<ul class="menu">
+    <li><a href="{{ url_for('admin_sensor_monitor') }}"><i class="bi bi-speedometer2"></i> Sensor Monitor</a></li>
+    <li><a href="{{ url_for('admin_security_alerts') }}"><i class="bi bi-shield-exclamation"></i> Security Alerts</a></li>
+    <li><a href="{{ url_for('admin_logs') }}"><i class="bi bi-clock-history"></i> Access Logs</a></li>
+    <li><a href="{{ url_for('admin_control_panel') }}"><i class="bi bi-gear"></i> Control Panel</a></li>
+    <li class="active"><a href="{{ url_for('admin_analytics') }}"><i class="bi bi-bar-chart"></i> Analytics</a></li>
+</ul>
+</aside>
+
+<!-- ================= MAIN ================= -->
+<div class="main">
+
+<!-- ================= TOPBAR ================= -->
+<div class="topbar d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+<div></div>
+<div class="profile" onclick="toggleDropdown(event)">
+    <div class="avatar">
+        {% if user.profile_pic %}
+        <img src="{{ url_for('static', filename='profile_pic/' + user.profile_pic) }}" width="35" height="35">
+        {% else %}
+        {{ user.username[0] | upper }}
+        {% endif %}
+    </div>
+
+    <div class="dropdown" id="profileDropdown">
+        <div class="dropdown-header">
+            <strong>{{ user.full_name }}</strong>
+            <small>{{ user.role }}</small>
+        </div>
+        <a href="{{ url_for('admin_profile') }}"><i class="bi bi-person"></i> Profile</a>
+        <a href="#"><i class="bi bi-key"></i> Change Password</a>
+<!-- DARK MODE TOGGLE -->
+                    <a href="javascript:void(0)" class="dropdown-item" id="darkModeToggle">
+                        <i class="bi bi-moon" id="themeIcon"></i>
+                        <span>Dark Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </a>
+        <hr>
+        <a href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    </div>
+</div>
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="content">
+
+<h2 class="page-header">
+    <i class="bi bi-bar-chart-line"></i> Analytics Summary
+</h2>
+
+<p class="page-description-analytics">
+    Monitor and analyze real-time system activity, including RFID access attempts, motion events, and device distribution. Identify trends, review security incidents, and ensure compliance with operational standards.
+</p>
+
+<div class="dashboard-grid">
+
+    <!-- RFID PIE -->
+    <div class="card-panel">
+        <div class="card-header">
+            <i class="bi bi-pie-chart"></i> RFID Access
+        </div>
+        <canvas id="rfidChart"></canvas>
+    </div>
+
+    <!-- INTRUSION -->
+    <div class="card-panel">
+        <div class="card-header">
+            <i class="bi bi-shield-exclamation"></i> Intrusions
+        </div>
+        <div class="big-number">{{ intrusion }}</div>
+        <div class="small-text">Total detected intrusions</div>
+    </div>
+
+    <!-- MOTION -->
+    <div class="card-panel">
+        <div class="card-header">
+            <i class="bi bi-activity"></i> Motion Events
+        </div>
+        <div class="big-number">{{ motion }}</div>
+        <div class="small-text">Total motion triggers</div>
+    </div>
+
+    <!-- DEVICE BAR -->
+    <div class="card-panel">
+        <div class="card-header">
+            <i class="bi bi-cpu"></i> Device Distribution
+        </div>
+        <canvas id="deviceChart"></canvas>
+    </div>
+
+</div>
+
+</div>
+
+<!-- ================= FLASH ================= -->
+<div id="flash-message">
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+</div>
+
+</div> <!-- main -->
+</div> <!-- layout -->
+
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+
+<!-- ================= CHART & LIVE SCRIPT ================= -->
+<script>
+let rfidChart;
+let deviceChart;
+
+// INITIAL LOAD
+function initCharts() {
+    const granted = {{ granted }};
+    const denied = {{ denied }};
+
+    rfidChart = new Chart(document.getElementById('rfidChart'), {
+        type: 'pie',
+        data: {
+            labels: ['Granted', 'Denied'],
+            datasets: [{
+                data: [granted, denied],
+                backgroundColor: ['#27ae60','#e74c3c']
+            }]
+        },
+        options: {
+            responsive:true,
+            plugins:{legend:{position:'bottom'}}
+        }
+    });
+
+    const deviceLabels = [{% for d in devices %}'{{ d.device_type }}',{% endfor %}];
+    const deviceData = [{% for d in devices %}{{ d.total }},{% endfor %}];
+
+    deviceChart = new Chart(document.getElementById('deviceChart'), {
+        type: 'bar',
+        data: {
+            labels: deviceLabels,
+            datasets: [{
+                label: 'Devices',
+                data: deviceData,
+                backgroundColor: '#3498db'
+            }]
+        },
+        options: {
+            responsive:true,
+            plugins:{legend:{display:false}}
+        }
+    });
+}
+
+// LIVE UPDATE FUNCTION
+function updateAnalytics() {
+    fetch("/admin/analytics/data")
+    .then(res => res.json())
+    .then(data => {
+        // Update RFID chart
+        rfidChart.data.datasets[0].data = [data.granted, data.denied];
+        rfidChart.update();
+
+        // Update Device chart
+        const labels = data.devices.map(d => d.device_type);
+        const values = data.devices.map(d => d.total);
+
+        deviceChart.data.labels = labels;
+        deviceChart.data.datasets[0].data = values;
+        deviceChart.update();
+
+        // Update numbers
+        document.querySelectorAll(".big-number")[0].innerText = data.intrusion;
+        document.querySelectorAll(".big-number")[1].innerText = data.motion;
+    })
+    .catch(err => console.log("Live update error:", err));
+}
+
+// INIT
+initCharts();
+setInterval(updateAnalytics, 5000); // Refresh every 5 seconds
+</script>
+
+
+</body>
+</html>

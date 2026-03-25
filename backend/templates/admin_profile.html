@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile - SecuTrack</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='logo/SecuTrack.png') }}" alt="Logo">
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('admin_sensor_monitor') }}"><i class="bi bi-speedometer2"></i> Sensor Monitor</a></li>
+            <li><a href="{{ url_for('admin_security_alerts') }}"><i class="bi bi-shield-exclamation"></i> Security Alerts</a></li>
+            <li><a href="{{ url_for('admin_logs') }}"><i class="bi bi-clock-history"></i> Access Logs</a></li>
+            <li><a href="{{ url_for('admin_control_panel') }}"><i class="bi bi-gear"></i> Control Panel</a></li>
+            <li><a href="{{ url_for('admin_analytics') }}"><i class="bi bi-bar-chart"></i> Analytics</a></li>
+        </ul>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- TOPBAR -->
+        <div class="topbar">
+            <div></div>
+
+            <div class="profile" id="profileMenu" onclick="toggleDropdown(event)">
+                <div class="avatar">
+                    {% if user.profile_pic %}
+                        <img src="{{ url_for('static', filename='profile_pic/' + user.profile_pic) }}">
+                    {% else %}
+                        {{ user.username[0] | upper }}
+                    {% endif %}
+                </div>
+
+                <!-- DROPDOWN -->
+                <div class="dropdown" id="profileDropdown">
+
+                    <div class="dropdown-header">
+                        <strong>{{ user.full_name }}</strong>
+                        <small>{{ user.role }}</small>
+                    </div>
+
+                    <a href="{{ url_for('admin_profile') }}" class="dropdown-item">
+                        <i class="bi bi-person"></i>
+                        <span>Profile</span>
+                    </a>
+
+                    <a href="#" class="dropdown-item">
+                        <i class="bi bi-key"></i>
+                        <span>Change Password</span>
+                    </a>
+
+                    <!-- DARK MODE TOGGLE -->
+                    <a href="javascript:void(0)" class="dropdown-item" id="darkModeToggle">
+                        <i class="bi bi-moon" id="themeIcon"></i>
+                        <span>Dark Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </a>
+
+                    <hr>
+
+                    <a href="{{ url_for('logout') }}" class="dropdown-item logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Logout</span>
+                    </a>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+            <div class="profile-card">
+
+                <div class="profile-header">
+                    <div class="profile-image-wrapper">
+                        {% if user.profile_pic %}
+                            <img src="{{ url_for('static', filename='profile_pic/' + user.profile_pic) }}" class="profile-image">
+                        {% else %}
+                            <div class="profile-image default-avatar">
+                                {{ user.username[0] | upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <h2>{{ user.full_name }}</h2>
+                    <p class="role">{{ user.role }}</p>
+                </div>
+
+                <div class="profile-info">
+                    <h3>Account Information</h3>
+
+                    <div class="info-grid">
+                        <div>
+                            <label>Full Name</label>
+                            <p>{{ user.full_name }}</p>
+                        </div>
+
+                        <div>
+                            <label>Username</label>
+                            <p>{{ user.username }}</p>
+                        </div>
+
+                        <div>
+                            <label>Role</label>
+                            <p>{{ user.role }}</p>
+                        </div>
+
+                        <div>
+                            <label>Status</label>
+                            <p class="status-active">Active</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FLASH -->
+<div id="flash-message">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+
+
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Control Panel - SecuTrack</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<!-- Socket.IO -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ================= SIDEBAR ================= -->
+<aside class="sidebar">
+<div class="logo">
+<img src="{{ url_for('static', filename='logo/SecuTrack.png') }}" alt="Logo">
+</div>
+<ul class="menu">
+<li><a href="{{ url_for('admin_sensor_monitor') }}"><i class="bi bi-speedometer2"></i> Sensor Monitor</a></li>
+<li><a href="{{ url_for('admin_security_alerts') }}"><i class="bi bi-shield-exclamation"></i> Security Alerts</a></li>
+<li><a href="{{ url_for('admin_logs') }}"><i class="bi bi-clock-history"></i> Access Logs</a></li>
+<li class="{% if request.endpoint == 'admin_control_panel' %}active{% endif %}"><a href="{{ url_for('admin_control_panel') }}"><i class="bi bi-gear"></i> Control Panel</a></li>
+<li><a href="{{ url_for('admin_analytics') }}"><i class="bi bi-bar-chart"></i> Analytics</a></li>
+
+</ul>
+</aside>
+
+<!-- ================= MAIN ================= -->
+<div class="main">
+
+<!-- ================= TOPBAR ================= -->
+<div class="topbar d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+<div></div>
+<div class="profile" id="profileMenu" onclick="toggleDropdown(event)">
+<div class="avatar">
+{% if user.profile_pic %}
+<img src="{{ url_for('static', filename='profile_pic/' + user.profile_pic) }}" 
+alt="Profile" class="rounded-circle" width="35" height="35">
+{% else %}
+{{ user.username[0] | upper }}
+{% endif %}
+</div>
+
+<div class="dropdown" id="profileDropdown">
+<div class="dropdown-header">
+<strong>{{ user.full_name }}</strong>
+<small>{{ user.role }}</small>
+</div>
+<a href="{{ url_for('admin_profile') }}"><i class="bi bi-person"></i> Profile</a>
+<a href="#"><i class="bi bi-key"></i> Change Password</a>
+<!-- DARK MODE TOGGLE -->
+                    <a href="javascript:void(0)" class="dropdown-item" id="darkModeToggle">
+                        <i class="bi bi-moon" id="themeIcon"></i>
+                        <span>Dark Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </a>
+<hr>
+<a href="{{ url_for('logout') }}" class="logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+</div>
+</div>
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="content">
+
+<h2 class="page-header"><i class="bi bi-sliders"></i> Security Control Panel</h2>
+
+<!-- ================= SYSTEM DESCRIPTION ================= -->
+<p class="page-description-control-panel">
+    <span class="desc-item"><i class="bi bi-camera-video"></i> Real-time Sensor Monitoring</span>
+    <span class="desc-item"><i class="bi bi-lightning-charge"></i> Remote Device Control</span>
+    <span class="desc-item"><i class="bi bi-shield-check"></i> Security Compliance & Alerts</span>
+    <br>
+    
+
+<!-- ================= STATUS PANEL ================= -->
+<div class="status-panel">
+  <div class="status-box">
+    <h4><i class="bi bi-cpu"></i> Arduino</h4>
+    <span id="arduino-status" class="status-online">Online</span>
+  </div>
+  <div class="status-box">
+    <h4><i class="bi bi-door-closed-fill"></i> Door</h4>
+    <span id="door-panel-status" class="status-offline">Closed</span>
+  </div>
+  <div class="status-box">
+    <h4><i class="bi bi-lightbulb-fill"></i> Light</h4>
+    <span id="light-panel-status" class="status-offline">Off</span>
+  </div>
+  <div class="status-box">
+    <h4><i class="bi bi-bell-fill"></i> Buzzer</h4>
+    <span id="buzzer-panel-status" class="status-offline">Off</span>
+  </div>
+  <div class="status-box">
+    <h4><i class="bi bi-shield-fill-check"></i> Sensors</h4>
+    <span id="sensor-system-status" class="status-offline">Inactive</span>
+  </div>
+</div>
+
+<!-- ================= DEVICE GRID ================= -->
+<div class="dashboard-grid">
+
+<!-- Door Lock -->
+<div class="card card-panel {{ 'active-on' if devices['door'] == 'Unlocked' else 'active-off' }}">
+<div class="card-header"><i class="bi bi-door-closed-fill"></i> Door Lock</div>
+<div class="card-body">
+<span id="door-status" class="device-status">{{ devices['door'] }}</span>
+<div class="card-controls">
+<button class="btn btn-green" onclick="controlDevice('door','unlock')"><i class="bi bi-unlock-fill"></i></button>
+<button class="btn btn-red" onclick="controlDevice('door','lock')"><i class="bi bi-lock-fill"></i></button>
+</div>
+</div>
+</div>
+
+<!-- RGB Light -->
+<div class="card card-panel {{ 'active-on' if devices['rgb'] == 'On' else 'active-off' }}">
+<div class="card-header"><i class="bi bi-lightbulb-fill"></i> RGB Light</div>
+<div class="card-body">
+<span id="rgb-status" class="device-status">{{ devices['rgb'] }}</span>
+<div class="card-controls">
+<button class="btn btn-green" onclick="controlDevice('rgb','on')"><i class="bi bi-lightbulb-fill"></i></button>
+<button class="btn btn-red" onclick="controlDevice('rgb','off')"><i class="bi bi-lightbulb-off-fill"></i></button>
+</div>
+</div>
+</div>
+
+<!-- Buzzer -->
+<div class="card card-panel {{ 'active-on' if devices['buzzer'] == 'On' else 'active-off' }}">
+<div class="card-header"><i class="bi bi-bell-fill"></i> Buzzer</div>
+<div class="card-body">
+<span id="buzzer-status" class="device-status">{{ devices['buzzer'] }}</span>
+<div class="card-controls">
+<button class="btn btn-green" onclick="controlDevice('buzzer','on')"><i class="bi bi-bell-fill"></i></button>
+<button class="btn btn-red" onclick="controlDevice('buzzer','off')"><i class="bi bi-bell-slash-fill"></i></button>
+</div>
+</div>
+</div>
+
+<!-- Sensors -->
+<div class="card card-panel {{ 'active-on' if devices['sensors'] == 'Armed' else 'active-off' }}">
+<div class="card-header"><i class="bi bi-shield-fill-check"></i> Sensors</div>
+<div class="card-body">
+<span id="sensors-status" class="device-status">{{ devices['sensors'] }}</span>
+<div class="card-controls">
+<button class="btn btn-green" onclick="controlDevice('sensors','arm')"><i class="bi bi-shield-fill-check"></i></button>
+<button class="btn btn-red" onclick="controlDevice('sensors','disarm')"><i class="bi bi-shield-slash"></i></button>
+</div>
+</div>
+</div>
+
+</div> <!-- dashboard-grid -->
+</div> <!-- content -->
+
+<!-- ================= FLASH ================= -->
+<div id="flash-message">
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="flash {{ category }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+</div>
+
+</div> <!-- main -->
+</div> <!-- layout -->
+
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+// Toggle profile dropdown
+function toggleDropdown(e){document.getElementById("profileDropdown").classList.toggle("show");}
+
+// Update device UI
+function updateDeviceUI(device,status){
+var el=document.getElementById(device+"-status");
+var card=el.closest(".card");
+if(el) el.innerText=status;
+if(device==="rgb"||device==="buzzer"){if(status==="ON"){card.classList.add("active-on");card.classList.remove("active-off");}else{card.classList.add("active-off");card.classList.remove("active-on");}}
+else if(device==="sensors"){if(status==="ARMED"){card.classList.add("active-on");card.classList.remove("active-off");}else{card.classList.add("active-off");card.classList.remove("active-on");}}
+else if(device==="door"){if(status==="OPEN"){card.classList.add("active-on");card.classList.remove("active-off");}else{card.classList.add("active-off");card.classList.remove("active-on");}}
+}
+
+// Control devices
+function controlDevice(device,action){
+fetch("/api/device_control",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({device:device,action:action})})
+.then(res=>res.json())
+.then(data=>{if(data.success){updateDeviceUI(device,data.status);}else{alert(data.message);}})
+.catch(err=>console.error(err));
+}
+
+// Arduino polling + live panel (steady online)
+function fetchArduinoStatus(){
+  fetch("/api/control_status")
+    .then(res => res.json())
+    .then(data => {
+      if(!data.success) return;
+
+      // Arduino - steady online
+      const arduinoEl = document.getElementById("arduino-status");
+      arduinoEl.innerText = "Online";
+      arduinoEl.classList.add("status-online");
+      arduinoEl.classList.remove("status-offline");
+
+      // Door
+      const doorEl = document.getElementById("door-panel-status");
+      const doorState = data.doorOpen ? "Open" : "Closed";
+      doorEl.innerText = doorState;
+      doorEl.classList.toggle("status-online", data.doorOpen);
+      doorEl.classList.toggle("status-offline", !data.doorOpen);
+
+      // Light
+      const lightEl = document.getElementById("light-panel-status");
+      const lightState = (data.rgb.red || data.rgb.green || data.rgb.blue) ? "On" : "Off";
+      lightEl.innerText = lightState;
+      lightEl.classList.toggle("status-online", lightState==="On");
+      lightEl.classList.toggle("status-offline", lightState==="Off");
+
+      // Buzzer
+      const buzzerEl = document.getElementById("buzzer-panel-status");
+      const buzzerState = data.buzzer ? "On" : "Off";
+      buzzerEl.innerText = buzzerState;
+      buzzerEl.classList.toggle("status-online", data.buzzer);
+      buzzerEl.classList.toggle("status-offline", !data.buzzer);
+
+      // Sensors
+      const sensorEl = document.getElementById("sensor-system-status");
+      const sensorsActive = data.sensors;
+      sensorEl.innerText = sensorsActive ? "Active" : "Inactive";
+      sensorEl.classList.toggle("status-online", sensorsActive);
+      sensorEl.classList.toggle("status-offline", !sensorsActive);
+  });
+}
+setInterval(fetchArduinoStatus,500);
+
+// WebSocket updates
+var socket = io();
+socket.on("device_update", function(data){
+if(!data.device||data.status===undefined) return;
+const el = document.getElementById(data.device+"-panel-status") || document.getElementById(data.device+"-status");
+if(el){
+el.innerText = (data.status? (data.device==="door"?"Open":data.device==="rgb"||data.device==="buzzer"?"On":"Active") : (data.device==="door"?"Closed":data.device==="rgb"||data.device==="buzzer"?"Off":"Inactive"));
+el.classList.toggle("status-online", !!data.status);
+el.classList.toggle("status-offline", !data.status);
+}
+});
+
+// Flash auto hide
+setTimeout(()=>{document.querySelectorAll(".flash").forEach(f=>f.remove());},4000);
+</script>
+
+</body>
+</html>

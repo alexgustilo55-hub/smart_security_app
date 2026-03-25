@@ -4,13 +4,19 @@ export const useSafeRouter = () => {
   const router = useRouter();
 
   const push = (path: string) => {
-    // @ts-ignore
-    router?.push(path);
+    try {
+      router.push(path as any);
+    } catch (err) {
+      console.log('Push navigation error:', err);
+    }
   };
 
   const replace = (path: string) => {
-    // @ts-ignore
-    router?.replace(path);
+    try {
+      router.replace(path as any);
+    } catch (err) {
+      console.log('Replace navigation error:', err);
+    }
   };
 
   return { push, replace };

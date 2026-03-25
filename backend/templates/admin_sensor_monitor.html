@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sensor Monitor - SecuTrack</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ================= SIDEBAR ================= -->
+<aside class="sidebar">
+    <div class="logo">
+        <img src="{{ url_for('static', filename='logo/SecuTrack.png') }}" alt="Logo">
+    </div>
+    <ul class="menu">
+        <li class="{% if request.endpoint == 'admin_sensor_monitor' %}active{% endif %}">
+            <a href="{{ url_for('admin_sensor_monitor') }}"><i class="bi bi-speedometer2"></i> Sensor Monitor</a>
+        </li>
+        <li><a href="{{ url_for('admin_security_alerts') }}"><i class="bi bi-shield-exclamation"></i> Security Alerts</a></li>
+        <li><a href="{{ url_for('admin_logs') }}"><i class="bi bi-clock-history"></i> Access Logs</a></li>
+        <li><a href="{{ url_for('admin_control_panel') }}"><i class="bi bi-gear"></i> Control Panel</a></li>
+        <li><a href="{{ url_for('admin_analytics') }}"><i class="bi bi-bar-chart"></i> Analytics</a></li>
+    </ul>
+</aside>
+
+<!-- ================= MAIN ================= -->
+<div class="main">
+
+<!-- ================= TOPBAR ================= -->
+<div class="topbar">
+    <div></div>
+    <div class="profile" id="profileMenu" onclick="toggleDropdown(event)">
+        <div class="avatar">
+            {% if user.profile_pic %}
+            <img src="{{ url_for('static', filename='profile_pic/' + user.profile_pic) }}" alt="Profile">
+            {% else %}
+            {{ user.username[0] | upper }}
+            {% endif %}
+        </div>
+
+        <div class="dropdown" id="profileDropdown">
+            <div class="dropdown-header">
+                <strong>{{ user.full_name }}</strong>
+                <small>{{ user.role }}</small>
+            </div>
+            <a href="{{ url_for('admin_profile') }}"><i class="bi bi-person"></i> Profile</a>
+            <a href="#"><i class="bi bi-key"></i> Change Password</a>
+            
+    <!-- DARK MODE TOGGLE -->
+                    <a href="javascript:void(0)" class="dropdown-item" id="darkModeToggle">
+                        <i class="bi bi-moon" id="themeIcon"></i>
+                        <span>Dark Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </a>
+
+            <hr>
+            <a href="{{ url_for('logout') }}" class="logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+    </div>
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="content">
+
+<h1 class="page-header"><i class="bi bi-speedometer2"></i> Sensor Monitor</h1>
+
+<p class="page-description1" id="sensorDescription">
+  <span class="desc-item"><i class="bi bi-person-walking"></i> Motion Detection</span> | 
+  <span class="desc-item"><i class="bi bi-broadcast"></i> Distance Monitoring</span> | 
+  <span class="desc-item"><i class="bi bi-shield-check"></i> Threat Level Overview</span><br>
+  <span id="descText">
+    The Sensor Monitor is a real-time dashboard that displays the status of all connected sensors, their activity, distances, and current threat level to enable faster and safer responses.
+  </span>
+</p>
+
+<!-- ================= SYSTEM STATUS PANEL ================= -->
+<div class="status-panel">
+    <!-- System Status -->
+    <div class="status-box">
+        <h4>System Status</h4>
+        <span id="systemStatus" class="online">System Active</span>
+    </div>
+    <!-- Connected Sensors -->
+    <div class="status-box">
+        <h4>Connected Sensors</h4>
+        <span>2 Devices</span>
+        <small>PIR + Ultrasonic</small>
+    </div>
+    <!-- Last Update -->
+    <div class="status-box">
+        <h4>Last Update</h4>
+        <span id="lastUpdate">--</span>
+    </div>
+    <!-- Threat Level -->
+    <div class="status-box threat low">
+        <h4>Threat Level</h4>
+        <span id="threatLevel">Low</span>
+    </div>
+</div>
+
+<!-- ================= SENSOR CARDS ================= -->
+<div class="dashboard-grid">
+    <!-- PIR Motion Sensor -->
+    <div class="card-panel active-off">
+        <div class="card-header"><i class="bi bi-person-walking"></i> PIR Motion Sensor</div>
+        <span class="device-status" id="personDetected">No</span>
+        <div id="pirBadge" class="badge bg-success fs-6">No Motion</div>
+    </div>
+
+    <!-- Ultrasonic Distance -->
+    <div class="card-panel active-on">
+        <div class="card-header"><i class="bi bi-broadcast"></i> Ultrasonic Distance</div>
+        <span class="device-status" id="distanceValue">-- cm</span>
+        <div id="distanceBadge" class="badge bg-success fs-6">Safe Distance</div>
+    </div>
+
+    <!-- Security Alert -->
+    <div class="card-panel threat low">
+        <div class="card-header"><i class="bi bi-shield-exclamation"></i> Security Alert</div>
+        <span class="device-status" id="alertBadge">System Normal</span>
+    </div>
+</div>
+
+<!-- ================= LIVE STATUS ================= -->
+<div class="card-panel live-status-card">
+    <h4 class="card-header"><i class="bi bi-activity"></i> Live Security Status</h4>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+            PIR Motion Detection <span id="pirStatus" class="badge bg-success">Idle</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+            Distance Monitoring <span id="distanceStatus" class="badge bg-success">Normal</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+            Intrusion Detection <span id="intrusionStatus" class="badge bg-success">No Threat</span>
+        </li>
+    </ul>
+</div>
+
+</div> <!-- end content -->
+
+</div> <!-- end main -->
+
+<!-- FLASH -->
+<div id="flash-message">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+</div>
+
+<!-- JS -->
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+const socket = io();
+
+// Track active alerts
+let activePir = false;
+let activeAlert = false;
+
+socket.on("connect", () => {
+    console.log("Connected to WebSocket");
+});
+
+socket.on("update_overview", (data) => {
+
+    document.getElementById("lastUpdate").innerText = new Date().toLocaleTimeString();
+
+    if(data.type === "sensor") {
+
+        const sensor = data.sensor;
+        const d = data.data;
+
+        const threatLevel = document.getElementById("threatLevel");
+        const pirStatus = document.getElementById("pirStatus");
+        const distanceStatus = document.getElementById("distanceStatus");
+        const intrusionStatus = document.getElementById("intrusionStatus");
+
+        /* ---------------- PIR ---------------- */
+        if(sensor === "pir") {
+            const badge = document.getElementById("pirBadge");
+            const person = document.getElementById("personDetected");
+
+            if(d.pirMotion){
+                badge.innerText = "Motion Detected";
+                badge.className = "badge bg-danger fs-6";
+                person.innerText = "Yes";
+                pirStatus.innerText = "Motion";
+                pirStatus.className = "badge bg-warning";
+                threatLevel.innerText = "Medium";
+                threatLevel.style.color = "orange";
+
+                activePir = true;
+            } else {
+                badge.innerText = "No Motion";
+                badge.className = "badge bg-success fs-6";
+                person.innerText = "No";
+                pirStatus.innerText = "Idle";
+                pirStatus.className = "badge bg-success";
+                if(!activeAlert) {
+                    threatLevel.innerText = "Low";
+                    threatLevel.style.color = "green";
+                }
+                activePir = false;
+            }
+        }
+
+        /* ---------------- ULTRASONIC ---------------- */
+        if(sensor === "ultrasonic") {
+            const distanceValue = document.getElementById("distanceValue");
+            const distanceBadge = document.getElementById("distanceBadge");
+
+            if(d.distance_cm && d.distance_cm > 0) {
+                distanceValue.innerText = d.distance_cm + " cm";
+
+                if(d.distance_cm < 50){
+                    distanceBadge.innerText = "Object Nearby";
+                    distanceBadge.className = "badge bg-warning";
+                    distanceStatus.innerText = "Object Nearby";
+                    distanceStatus.className = "badge bg-warning";
+                } else {
+                    distanceBadge.innerText = "Safe Distance";
+                    distanceBadge.className = "badge bg-success";
+                    distanceStatus.innerText = "Normal";
+                    distanceStatus.className = "badge bg-success";
+                }
+            } else {
+                distanceValue.innerText = "-- cm";
+                distanceBadge.innerText = "Safe Distance";
+                distanceBadge.className = "badge bg-success";
+                distanceStatus.innerText = "Normal";
+                distanceStatus.className = "badge bg-success";
+            }
+        }
+
+        /* ---------------- ALERT ---------------- */
+        if(d.alert) {
+            const alertBadge = document.getElementById("alertBadge");
+
+            if(d.alert !== "none"){
+                alertBadge.innerText = d.alert;
+                alertBadge.className = "badge bg-danger fs-6";
+                intrusionStatus.innerText = "Intrusion Detected";
+                intrusionStatus.className = "badge bg-danger";
+                threatLevel.innerText = "High";
+                threatLevel.style.color = "red";
+
+                activeAlert = true;
+
+            } else {
+                // Only clear if no active alert and no motion
+                if(!activePir) {
+                    alertBadge.innerText = "System Normal";
+                    alertBadge.className = "badge bg-success fs-6";
+                    intrusionStatus.innerText = "No Threat";
+                    intrusionStatus.className = "badge bg-success";
+                    threatLevel.innerText = "Low";
+                    threatLevel.style.color = "green";
+                }
+                activeAlert = false;
+            }
+        }
+
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Security Alerts - SecuTrack</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+</head>
+
+<body>
+<div class="layout">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='logo/SecuTrack.png') }}" alt="Logo">
+    </div>
+    
+    <ul class="menu">
+    <li class="{% if request.endpoint == 'admin_sensor_monitor' %}active{% endif %}">
+        <a href="{{ url_for('admin_sensor_monitor') }}"><i class="bi bi-speedometer2"></i> Sensor Monitor</a>
+    </li>
+    <li class="{% if request.endpoint == 'admin_security_alerts' %}active{% endif %}">
+        <a href="{{ url_for('admin_security_alerts') }}"><i class="bi bi-shield-exclamation"></i> Security Alerts</a>
+    </li>
+    <li class="{% if request.endpoint == 'admin_logs' %}active{% endif %}">
+        <a href="{{ url_for('admin_logs') }}"><i class="bi bi-clock-history"></i> Access Logs</a>
+    </li>
+    <li class="{% if request.endpoint == 'admin_control_panel' %}active{% endif %}">
+        <a href="{{ url_for('admin_control_panel') }}"><i class="bi bi-gear"></i> Control Panel</a>
+    </li>
+    <li class="{% if request.endpoint == 'admin_analytics' %}active{% endif %}">
+        <a href="{{ url_for('admin_analytics') }}"><i class="bi bi-bar-chart"></i> Analytics</a>
+    </li>
+</ul>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <div class="main">
+
+    <!-- ================= TOPBAR ================= -->
+    <div class="topbar">
+      <div></div>
+      <div class="profile" id="profileMenu" onclick="toggleDropdown(event)">
+        <div class="avatar">
+          {% if user.profile_pic %}
+            <img src="{{ url_for('static', filename='profile_pic/' + user.profile_pic) }}" alt="Profile">
+          {% else %}
+            {{ user.username[0] | upper }}
+          {% endif %}
+        </div>
+        <div class="dropdown" id="profileDropdown">
+          <div class="dropdown-header">
+            <strong>{{ user.full_name }}</strong>
+            <small>{{ user.role }}</small>
+          </div>
+          <a href="{{ url_for('admin_profile') }}"><i class="bi bi-person"></i> Profile</a>
+          <a href="#"><i class="bi bi-key"></i> Change Password</a>
+
+                    <a href="javascript:void(0)" class="dropdown-item" id="darkModeToggle">
+                        <i class="bi bi-moon" id="themeIcon"></i>
+                        <span>Dark Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </a>          
+          <hr>
+          <a href="{{ url_for('logout') }}" class="logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= CONTENT ================= -->
+    <div class="content">
+      
+      <h1 class="page-header"><i class="bi bi-exclamation-diamond" style="font-size:2rem; color:#b91c1c;"></i>Security Alerts</h1>
+
+      <div class="page-description2">
+  <div class="desc-card">
+    <i class="bi bi-soundwave"></i>
+    <div>
+      <strong>Ultrasonic Alerts</strong>
+      <p>Monitors changes in distance from sensors, detecting nearby objects automatically.</p>
+    </div>
+  </div>
+  <div class="desc-card">
+    <i class="bi bi-person-fill"></i>
+    <div>
+      <strong>PIR Motion Alerts</strong>
+      <p>Detects movement in monitored areas to track potential intrusions.</p>
+    </div>
+  </div>
+  <div class="desc-card">
+    <i class="bi bi-credit-card-2-front"></i>
+    <div>
+      <strong>RFID Alerts</strong>
+      <p>Logs unauthorized access attempts using RFID credentials.</p>
+    </div>
+  </div>
+  <div class="desc-card">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>
+      <strong>Alarm Alerts</strong>
+      <p>Critical system alerts that require immediate attention.</p>
+    </div>
+  </div>
+  <div class="desc-card">
+    <i class="bi bi-journal-text"></i>
+    <div>
+      <strong>System Alerts</strong>
+      <p>Informational notifications about system status or events.</p>
+    </div>
+  </div>
+</div>
+
+
+
+      <!-- Summary Counters -->
+      <div class="alert-summary">
+        <div class="alert-box red" id="ultrasonicEvents">
+          <i class="bi bi-soundwave"></i> Ultrasonic Events: 0
+          <small class="ml-2">Sensor detects distance changes</small>
+        </div>
+        <div class="alert-box blue" id="pirEvents">
+          <i class="bi bi-person-fill"></i> PIR Events: 0
+          <small class="ml-2">Motion detection alerts</small>
+        </div>
+      </div>
+
+      <!-- Reset Button -->
+      <div style="text-align:right; margin-bottom:15px;">
+        <button class="btn btn-red" id="resetAlerts">
+          <i class="bi bi-arrow-counterclockwise"></i> Reset Alerts
+        </button>
+      </div>
+
+      <!-- Alerts Table -->
+      <table id="alertsTable">
+        <thead>
+          <tr>
+            <th><i class="bi bi-tag-fill"></i> Type</th>
+            <th><i class="bi bi-hdd-rack-fill"></i> Sensor / Details</th>
+            <th><i class="bi bi-clock-history"></i> Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in alerts %}
+          <tr>
+            {% set type_class = '' %}
+            {% if 'Ultrasonic' in a.alert_type %}{% set type_class = 'Ultrasonic' %}
+            {% elif 'Motion' in a.alert_type %}{% set type_class = 'Motion' %}
+            {% elif 'RFID' in a.alert_type %}{% set type_class = 'RFID' %}
+            {% elif 'Alarm' in a.alert_type %}{% set type_class = 'Alarm' %}
+            {% else %}{% set type_class = 'System' %}{% endif %}
+            <td>
+              <span class="badge-alert badge-{{ type_class }}" data-desc="
+                {% if type_class=='Ultrasonic' %}Detects ultrasonic range{% endif %}
+                {% if type_class=='Motion' %}Detects motion/PIR{% endif %}
+                {% if type_class=='RFID' %}RFID access attempt{% endif %}
+                {% if type_class=='Alarm' %}Critical alarm triggered{% endif %}
+                {% if type_class=='System' %}System info{% endif %}
+              ">
+                {% if type_class == 'Ultrasonic' %}<i class="bi bi-soundwave"></i>{% endif %}
+                {% if type_class == 'Motion' %}<i class="bi bi-person-fill"></i>{% endif %}
+                {% if type_class == 'RFID' %}<i class="bi bi-credit-card-2-front"></i>{% endif %}
+                {% if type_class == 'Alarm' %}<i class="bi bi-exclamation-triangle-fill"></i>{% endif %}
+                {% if type_class == 'System' %}<i class="bi bi-journal-text"></i>{% endif %}
+                {{ a.alert_type }}
+              </span>
+            </td>
+            <td>{{ a.details }}</td>
+            <td>{{ a.created_at }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================= FLASH MESSAGES ================= -->
+<div id="flash-message">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
+<!-- ================= JS ================= -->
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+const socket = io();
+const alertsTable = document.querySelector('#alertsTable tbody');
+let counts = {red: 0, blue: 0};
+counts.red = {{ counts.active_alarms|tojson }};
+counts.blue = {{ counts.info|tojson }};
+updateSummary();
+
+function updateSummary(){
+    document.getElementById('ultrasonicEvents').innerHTML = `<i class="bi bi-soundwave"></i> Ultrasonic Events: ${counts.red}`;
+    document.getElementById('pirEvents').innerHTML = `<i class="bi bi-person-fill"></i> PIR Events: ${counts.blue}`;
+}
+
+function addAlertRow(type, details, timestamp){
+    const tr = document.createElement('tr');
+    let typeClass = '';
+    let iconHtml = '';
+    if(type.includes('Ultrasonic')) { typeClass='Ultrasonic'; iconHtml='<i class="bi bi-soundwave"></i>'; counts.red++; }
+    else if(type.includes('Motion') || type.includes('PIR')) { typeClass='Motion'; iconHtml='<i class="bi bi-person-fill"></i>'; counts.blue++; }
+    else if(type.includes('RFID')) { typeClass='RFID'; iconHtml='<i class="bi bi-credit-card-2-front"></i>'; counts.blue++; }
+    else if(type.includes('Alarm')) { typeClass='Alarm'; iconHtml='<i class="bi bi-exclamation-triangle-fill"></i>'; counts.blue++; }
+    else { typeClass='System'; iconHtml='<i class="bi bi-journal-text"></i>'; counts.blue++; }
+
+    tr.innerHTML = `
+        <td><span class="badge-alert badge-${typeClass}">${iconHtml} ${type}</span></td>
+        <td>${details}</td>
+        <td>${timestamp}</td>
+    `;
+    alertsTable.prepend(tr);
+    updateSummary();
+}
+
+// Reset alerts
+document.getElementById('resetAlerts').addEventListener('click', () => {
+    alertsTable.innerHTML = '';
+    counts.red = 0;
+    counts.blue = 0;
+    updateSummary();
+});
+
+// Socket updates
+socket.on('update_overview', (data) => {
+    const timestamp = new Date().toLocaleString();
+    const dist = data.data?.distance_cm || 0;
+    const pir = data.data?.pirMotion || false;
+
+    if (pir && dist <= 0) {
+        addAlertRow('PIR Alert', `${data.sensor} / Motion detected`, timestamp);
+    } else if (!pir && dist > 0 && dist <= 3) {
+        addAlertRow('Ultrasonic Alert', `${data.sensor} / Ultrasonic detected, distance: ${dist}cm`, timestamp);
+    } else if (pir && dist > 0 && dist <= 3) {
+        addAlertRow('Alarm Trigger', `${data.sensor} / PIR + Ultrasonic detected`, timestamp);
+    }
+
+    if (data.type === 'rfid' && data.status === 'denied') {
+        addAlertRow('Unauthorized RFID', `Unknown UID: ${data.uid}`, timestamp);
+    }
+
+    if (data.type === 'intrusion' || data.type === 'warning') {
+        const type = data.type === 'intrusion' ? 'Alarm Trigger' : 'Warning';
+        addAlertRow(type, data.description || data.alert_type, timestamp);
+    }
+});
+</script>
+</body>
+</html>
